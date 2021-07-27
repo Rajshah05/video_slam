@@ -1,6 +1,7 @@
 #include<iostream>
 #include<opencv2/opencv.hpp>
 #include"featureExtractorAndMatcher.h"
+#include<Eigen/Geometry>
 
 const int W = 1920/2;
 const int H = 1080/2;
@@ -15,13 +16,14 @@ void process_frame(cv::Mat& frame) {
 	if(!mkps.size()) return;
 	// drawing keypoints on frame
 	// cv::Mat frame_mkps;
-	std::vector<cv::KeyPoint> kps;
-	std::cout << mkps.size() << '\n';
+	// std::vector<cv::KeyPoint> kps;
+	// std::cout << mkps.size() << '\n';
 	for(auto& x : mkps) {
 		cv::line(frame, x.cur.pt, x.pre.pt, cv::Scalar(255,0,0));
-		kps.emplace_back(x.cur);
+		cv::circle(frame, x.cur.pt, 3, cv::Scalar(0,255,0));
+		// kps.emplace_back(x.cur);
 	}
-	cv::drawKeypoints(frame, kps, frame);
+	//cv::drawKeypoints(frame, kps, frame);
 	cv::imshow("Frame", frame);
 
 
