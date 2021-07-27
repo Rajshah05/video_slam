@@ -1,26 +1,28 @@
 #include<iostream>
 #include<opencv2/opencv.hpp>
-#include"frame_output.h"
 #include"featureExtractorAndMatcher.h"
 
 const int W = 1920/2;
 const int H = 1080/2;
-
-const int MAX_FEATURES = 5000;
-const float GOOD_MATCH_PERCENT = 0.15f;
 
 FeatureExtractorAndMatcher fem;
 
 
 void process_frame(cv::Mat& frame) {
 	
-	Frame_output Frame_o = fem.ExtractAndMatch(frame);
+	std::vector<match_kp> mkps = fem.ExtractAndMatch(frame);
 
+	if(!mkps.size()) return;
 	// drawing keypoints on frame
-	cv::Mat frame_kps;
-	cv::drawKeypoints(frame, Frame_o.kps, frame_kps);
-
-	cv::imshow("Frame", frame_kps);
+	// cv::Mat frame_mkps;
+	std::vector<cv::KeyPoint> kps;
+	std::cout << mkps.size() << '\n';
+	for(auto& x : mkps) {
+		cv::line(frame, x.cur.pt, x.pre.pt, cv::Scalar(255,0,0));
+		kps.emplace_back(x.cur);
+	}
+	cv::drawKeypoints(frame, kps, frame);
+	cv::imshow("Frame", frame);
 
 
 }

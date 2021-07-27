@@ -3,15 +3,21 @@
 #include<iostream>
 #include"frame_output.h"
 
+struct match_kp {
+	cv::KeyPoint cur,pre;
+};
+
 class FeatureExtractorAndMatcher {
 	public:
 		FeatureExtractorAndMatcher();
-		Frame_output ExtractAndMatch(cv::Mat& frame);
+		std::vector<match_kp> ExtractAndMatch(cv::Mat& frame);
 
 
 
 	private:
 		cv::Ptr<cv::Feature2D> orb;
-		cv::Ptr<cv::DescriptorMatcher> matcher;
+		// cv::Ptr<cv::DescriptorMatcher> matcher;
+		cv::BFMatcher matcher;
 		cv::Mat last_des;
+		std::vector<cv::KeyPoint> last_kps;
 };
