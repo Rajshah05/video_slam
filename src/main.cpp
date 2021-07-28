@@ -17,12 +17,12 @@ static const int F = 1;
 // std::cout << K;
 
 
-FeatureExtractorAndMatcher fem;
 
 
-void process_frame(cv::Mat& frame) {
+
+void process_frame(FeatureExtractorAndMatcher* fem, cv::Mat& frame) {
 	
-	Eigen::MatrixXf mkps = fem.ExtractAndMatch(frame);
+	Eigen::MatrixXf mkps = fem->ExtractAndMatch(frame);
 
 	if(!mkps.rows()) return;
 	for(int i = 0; i < mkps.rows(); i++) {
@@ -44,6 +44,10 @@ int main(int argc, char** argv) {
 		std::cout << "Error opening video stream or file" << '\n';
 		return -1;
 	}
+
+	Eigen::Matrix3f K;
+	K << F, 0, W/2, 0, F, H/2, 0, 0, 1;
+	FeatureExtractorAndMatcher* fem = new FeatureExtractorAndMatcher(K);
 	
 	
 	while(1) {
@@ -58,7 +62,7 @@ int main(int argc, char** argv) {
 			break;
 		}
 
-		process_frame(frame_rsz);
+		process_frame(fem, frame_rsz);
 
 		char c = (char)cv::waitKey(25);
 		if(c == 27) break;

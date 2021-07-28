@@ -4,12 +4,13 @@
 #include"featureExtractorAndMatcher.h"
 
 
-FeatureExtractorAndMatcher::FeatureExtractorAndMatcher() {
+FeatureExtractorAndMatcher::FeatureExtractorAndMatcher(Eigen::Matrix3f K) {
     orb = cv::ORB::create();
     // matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
     // mK << F, 0, W/2, 0, F, H/2, 0, 0, 1;
+    mK = K;
     matcher = cv::BFMatcher(cv::NORM_HAMMING);
-    // mKinv = K.inverse();
+    mKinv = K.inverse();
 
 }
 

@@ -15,7 +15,7 @@ struct match_kp_mat {
 
 class FeatureExtractorAndMatcher {
 	public:
-		FeatureExtractorAndMatcher();
+		FeatureExtractorAndMatcher(Eigen::Matrix3f);
 		Eigen::MatrixXf ExtractAndMatch(cv::Mat&);
 		// cv::Mat normalize(cv::Mat&);
 		// cv::Mat denormalize(cv::Mat&);
@@ -27,6 +27,6 @@ class FeatureExtractorAndMatcher {
 		cv::BFMatcher matcher;
 		cv::Mat last_des;
 		std::vector<cv::KeyPoint> last_kps;
-		// Eigen::Matrix3f mK;
-		// Eigen::Matrix3f mKinv;
+		Eigen::Matrix3f mK;
+		Eigen::Matrix3f mKinv;
 };
