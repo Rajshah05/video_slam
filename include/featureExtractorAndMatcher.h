@@ -17,8 +17,8 @@ class FeatureExtractorAndMatcher {
 	public:
 		FeatureExtractorAndMatcher(Eigen::Matrix3f);
 		Eigen::MatrixXf ExtractAndMatch(cv::Mat&);
-		// cv::Mat normalize(cv::Mat&);
-		// cv::Mat denormalize(cv::Mat&);
+		cv::Mat normalize(cv::Mat);
+		Eigen::Vector2f denormalize(Eigen::Vector3f);
 
 
 	private:

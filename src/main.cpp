@@ -26,10 +26,13 @@ void process_frame(FeatureExtractorAndMatcher* fem, cv::Mat& frame) {
 
 	if(!mkps.rows()) return;
 	for(int i = 0; i < mkps.rows(); i++) {
-		// cv::Mat curi = fem.denormalize(mkps.cur(i, cv::Range(0,1)));
-		// cv::Mat prei = fem.denormalize(mkps.pre(i, cv::Range(0,1)));
-		cv::line(frame, cv::Point(mkps(i,0), mkps(i,1)), cv::Point(mkps(i,2), mkps(i,3)), cv::Scalar(255,0,0));
-		cv::circle(frame, cv::Point(mkps(i,0), mkps(i,1)), 3, cv::Scalar(0,255,0));
+		Eigen::Vector3f curv, prev;
+		curv << mkps(i,0), mkps(i,1), 1.0;
+		prev << mkps(i,2), mkps(i,3), 1.0;
+		Eigen::Vector2f curi = fem->denormalize(curv);
+		Eigen::Vector2f prei = fem->denormalize(prev);
+		cv::line(frame, cv::Point(curi(0), curi(1)), cv::Point(prei(0), prei(1)), cv::Scalar(255,0,0));
+		cv::circle(frame, cv::Point(curi(0), curi(1)), 3, cv::Scalar(0,255,0));
 	}
 	cv::imshow("Frame", frame);
 
@@ -46,7 +49,7 @@ int main(int argc, char** argv) {
 	}
 
 	Eigen::Matrix3f K;
-	K << F, 0, W/2, 0, F, H/2, 0, 0, 1;
+	K << float(F), 0, float(W/2), 0, float(F), float(H/2), 0, 0, 1;
 	FeatureExtractorAndMatcher* fem = new FeatureExtractorAndMatcher(K);
 	
 	

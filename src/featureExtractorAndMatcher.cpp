@@ -1,6 +1,7 @@
 #include<opencv2/opencv.hpp>
 #include<iostream>
 #include<Eigen/Dense>
+#include <opencv2/core/eigen.hpp>
 #include"featureExtractorAndMatcher.h"
 
 
@@ -14,25 +15,33 @@ FeatureExtractorAndMatcher::FeatureExtractorAndMatcher(Eigen::Matrix3f K) {
 
 }
 
-// cv::Mat FeatureExtractorAndMatcher::normalize(cv::Mat& pts) {
-//     Eigen::Map<MatrixXf> pts_eigen( pts.data() ); 
-//     pts_eigen.conservativeResize(NoChange, pts_eigen.cols()+1);
-//     pts_eigen.col(pts_eigen.cols()-1) = Eigen::MatrixXf::Ones(pts_eigen.rows(),1);
-//     pts_eigen = mKinv*pts_eigen.transpose();
-//     pts_eigen = pts_eigen.transpose().block(0,0,pts_eigen.rows()-1,1);
-//     cv::Mat ret(pts_eigen.rows(), pts_eigen.cols(), CV_32F, pts_eigen.data());
-//     return ret;
-// }
+cv::Mat FeatureExtractorAndMatcher::normalize(cv::Mat pts) {
+    // std::cout << mKinv << '\n';
+    // std::cout << pts.at<float>(0,0) << " " << pts.at<float>(0,1) << '\n';
+    Eigen::MatrixXf pts_eigen;
+    cv::cv2eigen(pts, pts_eigen);
+    pts_eigen.conservativeResize(pts_eigen.rows(), pts_eigen.cols()+1);
+    pts_eigen.col(pts_eigen.cols()-1) = Eigen::MatrixXf::Ones(pts_eigen.rows(),1);
+    Eigen::MatrixXf pts_eigen_norm = (mKinv*(pts_eigen.transpose())).transpose().leftCols(2);
+    // std::cout << pts_eigen_norm(0,0) << " " << pts_eigen_norm(0,1) << '\n';
+    cv::eigen2cv(pts_eigen_norm, pts);
+    // std::cout << pts.at<float>(0,0) << " " << pts.at<float>(0,1) << '\n';
+    return pts;
+}
 
-// cv::Mat FeatureExtractorAndMatcher::denormalize(cv::Mat& pt) {
-//     Eigen::Map<MatrixXf> pt_eigen( pt.data() ); 
-//     pt_eigen.conservativeResize(NoChange, pt_eigen.cols()+1);
-//     pt_eigen.col(pt_eigen.cols()-1) = Eigen::MatrixXf::Ones(pt_eigen.rows(),1);
-//     pt_eigen = mK*pt_eigen.transpose();
-//     pt_eigen = pt_eigen.transpose().block(0,0,pt_eigen.rows()-1,1);
-//     cv::Mat ret(pt_eigen.rows(), pt_eigen.cols(), CV_32F, pt_eigen.data());
-//     return ret;
-// }
+Eigen::Vector2f FeatureExtractorAndMatcher::denormalize(Eigen::Vector3f pt) {
+    // Eigen::Map<MatrixXf> pt_eigen( pt.data() ); 
+    // pt_eigen.conservativeResize(NoChange, pt_eigen.cols()+1);
+    // pt_eigen.col(pt_eigen.cols()-1) = Eigen::MatrixXf::Ones(pt_eigen.rows(),1);
+    // std::cout << pt << '\n';
+    Eigen::Vector3f ret;
+    ret = mK*pt;
+    // ret = ret.head(2);
+    ret(0) = std::round(ret(0));
+    ret(1) = std::round(ret(1));
+    // std::cout << ret(0) << " " << ret(1) << '\n';
+    return ret.head(2);
+}
 
 Eigen::MatrixXf FeatureExtractorAndMatcher::ExtractAndMatch(cv::Mat& frame) {
     // grey scaling frame	
@@ -42,22 +51,22 @@ Eigen::MatrixXf FeatureExtractorAndMatcher::ExtractAndMatch(cv::Mat& frame) {
     // keypoint detection
     std::vector<cv::Point2f> corners;
     cv::goodFeaturesToTrack(frame_grey, corners, 5000, 0.01, 3);
-    
+
     std::vector<cv::KeyPoint> kps;
     kps.reserve(corners.size());
     for(auto& x : corners) {
         kps.emplace_back(x, 20);
     }
 
-
     // descriptor extraction
     cv::Mat des;
     orb->compute(frame, kps, des);
 
     std::vector<match_kp> match_kps;
-    std::vector<match_kp> ret;
+    // std::vector<match_kp> ret;
+    std::vector<int> ret;
     // cv::Mat retMat(ret.size(), 4, CV_32F);
-    Eigen::MatrixXf retMat(ret.size(), 4);
+    Eigen::MatrixXf retMat(0, 4);
 
     if(!last_des.empty()) {
         std::vector< std::vector<cv::DMatch> > knn_matches;
@@ -80,27 +89,30 @@ Eigen::MatrixXf FeatureExtractorAndMatcher::ExtractAndMatch(cv::Mat& frame) {
             p2.at<float>(i,1) = match_kps[i].pre.pt.y;
 
         }
-
-        // p1 = normalize(p1);
-        // p2 = normalize(p2);
+        // std::cout << mK << '\n';
+        // std::cout << p1 << " ";
+        cv::Mat p1n = normalize(p1);
+        cv::Mat p2n = normalize(p2);
+        // std::cout << "bobo\n";
+        // std::cout << p1n <<'\n';
 
         std::vector<uchar> mask(match_kps.size());
-        cv::Mat F = cv::findFundamentalMat(p1, p2, cv::FM_RANSAC, 1, 0.99, 100, mask);
+        cv::Mat F = cv::findFundamentalMat(p1n, p2n, cv::FM_RANSAC, 1, 0.99, 100, mask);
         for(int i = 0; i < match_kps.size(); i++) {
             if(mask[i]){
-                ret.emplace_back(match_kps[i]);
+                ret.emplace_back(i);
             }
         }
         // p1.resize(ret.size());
         // p2.resize(ret.size());
         retMat.resize(ret.size(),4);
         for(int i = 0; i < ret.size(); i++) {
-            retMat(i,0) = ret[i].cur.pt.x;
-            retMat(i,1) = ret[i].cur.pt.y;
-            retMat(i,2) = ret[i].pre.pt.x;
-            retMat(i,3) = ret[i].pre.pt.y;
+            retMat(i,0) = p1n.at<float>(ret[i],0);
+            retMat(i,1) = p1n.at<float>(ret[i],1);
+            retMat(i,2) = p2n.at<float>(ret[i],0);
+            retMat(i,3) = p2n.at<float>(ret[i],1);
         }
-        // std::cout << match_kps.size() << " " << ret.size() << '\n';
+        std::cout << p1n.size() << " " << retMat.rows() << '\n';
     }
     last_des = des;
     last_kps = kps;
