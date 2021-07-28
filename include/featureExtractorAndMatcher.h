@@ -1,17 +1,24 @@
 #pragma once
 #include<opencv2/opencv.hpp>
 #include<iostream>
-#include"frame_output.h"
+#include<Eigen/Dense>
+
+extern Eigen::Matrix3f K;
 
 struct match_kp {
 	cv::KeyPoint cur,pre;
 };
 
+struct match_kp_mat {
+	cv::Mat cur, pre;
+};
+
 class FeatureExtractorAndMatcher {
 	public:
 		FeatureExtractorAndMatcher();
-		std::vector<match_kp> ExtractAndMatch(cv::Mat& frame);
-
+		Eigen::MatrixXf ExtractAndMatch(cv::Mat&);
+		// cv::Mat normalize(cv::Mat&);
+		// cv::Mat denormalize(cv::Mat&);
 
 
 	private:
@@ -20,4 +27,6 @@ class FeatureExtractorAndMatcher {
 		cv::BFMatcher matcher;
 		cv::Mat last_des;
 		std::vector<cv::KeyPoint> last_kps;
+		// Eigen::Matrix3f mK;
+		// Eigen::Matrix3f mKinv;
 };

@@ -1,29 +1,36 @@
+#include"featureExtractorAndMatcher.h"
 #include<iostream>
 #include<opencv2/opencv.hpp>
-#include"featureExtractorAndMatcher.h"
-#include<Eigen/Geometry>
+#include<Eigen/Dense>
+#include<complex>
+#include<math.h>
+#include<vector>
 
-const int W = 1920/2;
-const int H = 1080/2;
+
+static const int W = 1920/2;
+static const int H = 1080/2;
+static const int F = 1;
+
+// Eigen::Matrix2i abc;
+// abc << 1,1,1,1;
+// std::cout << "abs";
+// std::cout << K;
+
 
 FeatureExtractorAndMatcher fem;
 
 
 void process_frame(cv::Mat& frame) {
 	
-	std::vector<match_kp> mkps = fem.ExtractAndMatch(frame);
+	Eigen::MatrixXf mkps = fem.ExtractAndMatch(frame);
 
-	if(!mkps.size()) return;
-	// drawing keypoints on frame
-	// cv::Mat frame_mkps;
-	// std::vector<cv::KeyPoint> kps;
-	// std::cout << mkps.size() << '\n';
-	for(auto& x : mkps) {
-		cv::line(frame, x.cur.pt, x.pre.pt, cv::Scalar(255,0,0));
-		cv::circle(frame, x.cur.pt, 3, cv::Scalar(0,255,0));
-		// kps.emplace_back(x.cur);
+	if(!mkps.rows()) return;
+	for(int i = 0; i < mkps.rows(); i++) {
+		// cv::Mat curi = fem.denormalize(mkps.cur(i, cv::Range(0,1)));
+		// cv::Mat prei = fem.denormalize(mkps.pre(i, cv::Range(0,1)));
+		cv::line(frame, cv::Point(mkps(i,0), mkps(i,1)), cv::Point(mkps(i,2), mkps(i,3)), cv::Scalar(255,0,0));
+		cv::circle(frame, cv::Point(mkps(i,0), mkps(i,1)), 3, cv::Scalar(0,255,0));
 	}
-	//cv::drawKeypoints(frame, kps, frame);
 	cv::imshow("Frame", frame);
 
 
@@ -31,7 +38,7 @@ void process_frame(cv::Mat& frame) {
 
 
 int main(int argc, char** argv) {
-	
+
 	cv::VideoCapture cap("../video/test_countryroad.mp4");	
 	if(!cap.isOpened()) {
 		std::cout << "Error opening video stream or file" << '\n';
@@ -41,7 +48,7 @@ int main(int argc, char** argv) {
 	
 	while(1) {
 		cv::Mat frame, frame_rsz;
-		Frame_output frame_o;
+		// Frame_output frame_o;
 		cap >> frame;
 		
 		// Resizing frame
