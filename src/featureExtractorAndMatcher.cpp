@@ -5,33 +5,49 @@
 #include"featureExtractorAndMatcher.h"
 
 
-FeatureExtractorAndMatcher::FeatureExtractorAndMatcher(Eigen::Matrix3f K) {
+FeatureExtractorAndMatcher::FeatureExtractorAndMatcher(cv::Mat K) {
     orb = cv::ORB::create();
     mK = K;
     matcher = cv::BFMatcher(cv::NORM_HAMMING);
-    mKinv = K.inverse();
+    mKinv = K.inv();
 
 }
 
-cv::Mat FeatureExtractorAndMatcher::normalize(cv::Mat pts) {
-    Eigen::MatrixXf pts_eigen;
+// Eigen::MatrixXf FeatureExtractorAndMatcher::ExtractRt(cv::Mat& E) {
+//     Eigen::MatrixXf Ee;
+//     cv2eigen(E, Ee);
+//     Eigen::Matrix3f W;
+//     W << 0,-1,0,1,0,0,0,0,1;
+//     JacobiSVD<MatrixXf> svd( E, ComputeThinU | ComputeThinV);
+//     assert(svd.matrixU().determinant() > 0);
+//     if (svd.matrixV().determinant() < 0) {
+//         svd.matrixV()*=-1;
+//     }
+//     Eigen::Matrix3f R = (svd.matrixU()*W)*svd.matrixV();
+// }
+
+cv::Mat FeatureExtractorAndMatcher::normalize(cv::Mat& pts) {
+
+    Eigen::MatrixXf pts_eigen, mKinv_e;
     cv::cv2eigen(pts, pts_eigen);
+    cv::cv2eigen(mKinv, mKinv_e);
     pts_eigen.conservativeResize(pts_eigen.rows(), pts_eigen.cols()+1);
     pts_eigen.col(pts_eigen.cols()-1) = Eigen::MatrixXf::Ones(pts_eigen.rows(),1);
-    Eigen::MatrixXf pts_eigen_norm = (mKinv*(pts_eigen.transpose())).transpose().leftCols(2);
+    Eigen::MatrixXf pts_eigen_norm = (mKinv_e*(pts_eigen.transpose())).transpose().leftCols(2);
     cv::eigen2cv(pts_eigen_norm, pts);
     return pts;
 }
 
-Eigen::Vector2f FeatureExtractorAndMatcher::denormalize(Eigen::Vector3f pt) {
-    Eigen::Vector3f ret;
+cv::Mat FeatureExtractorAndMatcher::denormalize(cv::Mat& pt) {
+    cv::Mat ret;
     ret = mK*pt;
-    ret(0) = std::round(ret(0));
-    ret(1) = std::round(ret(1));
-    return ret.head(2);
+    ret.at<float>(0,0) = std::round(ret.at<float>(0,0));
+    ret.at<float>(1,0) = std::round(ret.at<float>(1,0));
+    ret.resize(2);
+    return ret;
 }
 
-Eigen::MatrixXf FeatureExtractorAndMatcher::ExtractAndMatch(cv::Mat& frame) {
+cv::Mat FeatureExtractorAndMatcher::ExtractAndMatch(cv::Mat& frame) {
     // grey scaling frame	
     cv::Mat frame_grey;
     cv::cvtColor(frame, frame_grey,cv::COLOR_BGR2GRAY);
@@ -50,52 +66,75 @@ Eigen::MatrixXf FeatureExtractorAndMatcher::ExtractAndMatch(cv::Mat& frame) {
     cv::Mat des;
     orb->compute(frame, kps, des);
 
-    std::vector<match_kp> match_kps;
-    // std::vector<match_kp> ret;
     std::vector<int> ret;
-    // cv::Mat retMat(ret.size(), 4, CV_32F);
-    Eigen::MatrixXf retMat(0, 4);
-
+    cv::Mat filteredKPmat(0, 4, CV_32F);
     if(!last_des.empty()) {
         std::vector< std::vector<cv::DMatch> > knn_matches;
         matcher.knnMatch( des, last_des, knn_matches, 2 );
+        cv::Mat p1(knn_matches.size(), 2, CV_32F);
+        cv::Mat p2(knn_matches.size(), 2, CV_32F);
+        int cur_row = 0;
         for (size_t i = 0; i < knn_matches.size(); i++){
             if (knn_matches[i][0].distance < 0.75f * knn_matches[i][1].distance)//.53
             {
-                match_kps.emplace_back(match_kp{kps[knn_matches[i][0].queryIdx], last_kps[knn_matches[i][0].trainIdx]});
+                p1.at<float>(cur_row,0) = kps[knn_matches[i][0].queryIdx].pt.x;
+                p1.at<float>(cur_row,1) = kps[knn_matches[i][0].queryIdx].pt.y;
+                p2.at<float>(cur_row,0) = last_kps[knn_matches[i][0].trainIdx].pt.x;
+                p2.at<float>(cur_row,1) = last_kps[knn_matches[i][0].trainIdx].pt.y;
+
+                cur_row++;
             }
         }
-
+        p1.resize(cur_row);
+        p2.resize(cur_row);
         //filter
-        cv::Mat p1(match_kps.size(), 2, CV_32F);
-        cv::Mat p2(match_kps.size(), 2, CV_32F);
-        for(int i = 0; i < match_kps.size(); i++) {
-            p1.at<float>(i,0) = match_kps[i].cur.pt.x;
-            p1.at<float>(i,1) = match_kps[i].cur.pt.y;
-            p2.at<float>(i,0) = match_kps[i].pre.pt.x;
-            p2.at<float>(i,1) = match_kps[i].pre.pt.y;
-
-        }
+        
         cv::Mat p1n = normalize(p1);
         cv::Mat p2n = normalize(p2);
-
-        std::vector<uchar> mask(match_kps.size());
-        cv::Mat F = cv::findFundamentalMat(p1n, p2n, cv::FM_RANSAC, 1, 0.99, 100, mask);
-        for(int i = 0; i < match_kps.size(); i++) {
+        std::vector<uchar> mask(cur_row);
+        cur_row = 0;
+        cv::Mat E = cv::findEssentialMat(p1n, p2n, mK, cv::RANSAC, 0.99, 0.005, 100, mask);
+        for(int i = 0; i < p1n.rows; i++) {
             if(mask[i]){
-                ret.emplace_back(i);
+                p1.at<float>(cur_row,0) = p1n.at<float>(i,0);
+                p1.at<float>(cur_row,1) = p1n.at<float>(i,1);
+                p2.at<float>(cur_row,0) = p2n.at<float>(i,0);
+                p2.at<float>(cur_row,1) = p2n.at<float>(i,1);
+                cur_row++;
             }
         }
-        retMat.resize(ret.size(),4);
-        for(int i = 0; i < ret.size(); i++) {
-            retMat(i,0) = p1n.at<float>(ret[i],0);
-            retMat(i,1) = p1n.at<float>(ret[i],1);
-            retMat(i,2) = p2n.at<float>(ret[i],0);
-            retMat(i,3) = p2n.at<float>(ret[i],1);
-        }
-        std::cout << p1n.size() << " " << retMat.rows() << '\n';
+
+        p1.resize(cur_row);
+        p2.resize(cur_row);
+
+        cv::hconcat(p1(cv::Rect(0,0,2,p1.rows)), p2(cv::Rect(0,0,2,p2.rows)), filteredKPmat);
+
+        std::cout << mask.size() << " " << filteredKPmat.rows << '\n';
+
+        
+        // Eigen::Matrix3f W;
+        // W << 0,-1,0,1,0,0,0,0,1;
+        // Eigen::MatrixXf Ee,U,V;
+        // cv2eigen(E, Ee);
+        // // std::cout << Ee << '\n';
+        // Eigen::JacobiSVD<Eigen::MatrixXf> svd( Ee, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        // // std::cout << svd.matrixU().determinant() << " " << svd.matrixV().determinant() << '\n';
+        // // std::cout << svd.singularValues() << '\n';
+        // V = svd.matrixV();
+        // U = svd.matrixU();
+        // // assert(svd.matrixU().determinant() > 0);
+        // // std::cout << U << " ";
+        // if (U.determinant() < 0) {
+        //     U*=-1;
+        // }
+        // // std::cout << U << '\n';
+        // if (V.determinant() < 0) {
+        //     V*=-1;
+        // }
+        // Eigen::Matrix3f R = (U*W)*V;
+        // std::cout << R << '\n';
     }
     last_des = des;
     last_kps = kps;
-    return retMat;
+    return filteredKPmat;
 }

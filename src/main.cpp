@@ -9,7 +9,7 @@
 
 static const int W = 1920/2;
 static const int H = 1080/2;
-static const int F = 1;
+static const int F = 270;
 
 // Eigen::Matrix2i abc;
 // abc << 1,1,1,1;
@@ -22,17 +22,22 @@ static const int F = 1;
 
 void process_frame(FeatureExtractorAndMatcher* fem, cv::Mat& frame) {
 	
-	Eigen::MatrixXf mkps = fem->ExtractAndMatch(frame);
+	cv::Mat matchCoords = fem->ExtractAndMatch(frame);
 
-	if(!mkps.rows()) return;
-	for(int i = 0; i < mkps.rows(); i++) {
-		Eigen::Vector3f curv, prev;
-		curv << mkps(i,0), mkps(i,1), 1.0;
-		prev << mkps(i,2), mkps(i,3), 1.0;
-		Eigen::Vector2f curi = fem->denormalize(curv);
-		Eigen::Vector2f prei = fem->denormalize(prev);
-		cv::line(frame, cv::Point(curi(0), curi(1)), cv::Point(prei(0), prei(1)), cv::Scalar(255,0,0));
-		cv::circle(frame, cv::Point(curi(0), curi(1)), 3, cv::Scalar(0,255,0));
+	if(!matchCoords.rows) return;
+	cv::Mat curv(3,1,CV_32F);
+	cv::Mat prev(3,1,CV_32F);
+	for(int i = 0; i < matchCoords.rows; i++) {
+		curv.at<float>(0,0) = matchCoords.at<float>(i,0);
+		curv.at<float>(1,0) = matchCoords.at<float>(i,1);
+		curv.at<float>(2,0) = 1.0;
+		prev.at<float>(0,0) = matchCoords.at<float>(i,2);
+		prev.at<float>(1,0) = matchCoords.at<float>(i,3);
+		prev.at<float>(2,0) = 1.0;
+		cv::Mat curi = fem->denormalize(curv);
+		cv::Mat prei = fem->denormalize(prev);
+		cv::line(frame, cv::Point(curi.at<float>(0,0), curi.at<float>(1,0)), cv::Point(prei.at<float>(0,0), prei.at<float>(1,0)), cv::Scalar(255,0,0));
+		cv::circle(frame, cv::Point(curi.at<float>(0,0), curi.at<float>(1,0)), 3, cv::Scalar(0,255,0));
 	}
 	cv::imshow("Frame", frame);
 
@@ -47,9 +52,7 @@ int main(int argc, char** argv) {
 		std::cout << "Error opening video stream or file" << '\n';
 		return -1;
 	}
-
-	Eigen::Matrix3f K;
-	K << float(F), 0, float(W/2), 0, float(F), float(H/2), 0, 0, 1;
+	cv::Mat K = (cv::Mat_<float>(3,3) << float(F), 0, float(W/2), 0, float(F), float(H/2), 0, 0, 1);
 	FeatureExtractorAndMatcher* fem = new FeatureExtractorAndMatcher(K);
 	
 	
