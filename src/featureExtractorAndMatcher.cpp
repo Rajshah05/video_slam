@@ -5,7 +5,7 @@
 #include"featureExtractorAndMatcher.h"
 
 
-FeatureExtractorAndMatcher::FeatureExtractorAndMatcher(cv::Mat K) {
+FeatureExtractorAndMatcher::FeatureExtractorAndMatcher(const cv::Mat& K) {
     orb = cv::ORB::create();
     mK = K;
     matcher = cv::BFMatcher(cv::NORM_HAMMING);
@@ -13,20 +13,44 @@ FeatureExtractorAndMatcher::FeatureExtractorAndMatcher(cv::Mat K) {
 
 }
 
-// Eigen::MatrixXf FeatureExtractorAndMatcher::ExtractRt(cv::Mat& E) {
-//     Eigen::MatrixXf Ee;
-//     cv2eigen(E, Ee);
-//     Eigen::Matrix3f W;
-//     W << 0,-1,0,1,0,0,0,0,1;
-//     JacobiSVD<MatrixXf> svd( E, ComputeThinU | ComputeThinV);
-//     assert(svd.matrixU().determinant() > 0);
-//     if (svd.matrixV().determinant() < 0) {
-//         svd.matrixV()*=-1;
-//     }
-//     Eigen::Matrix3f R = (svd.matrixU()*W)*svd.matrixV();
-// }
+cv::Mat FeatureExtractorAndMatcher::ExtractRt(const cv::Mat& E) {
+    cv::Mat d, U, Vt;
+    cv::SVDecomp(E, d, U, Vt, cv::SVD::FULL_UV);
+    
 
-cv::Mat FeatureExtractorAndMatcher::normalize(cv::Mat& pts) {
+    // std::cout << d.size() << " " << U.size() << " " << Vt.size() << '\n';
+    if (cv::determinant(U) < 0) {
+        U *= -1;
+    }
+
+    // Last row of Vt is undetermined since d = (a a 0).
+    if (cv::determinant(Vt) < 0) {
+        Vt *= -1;
+    }
+    // std::cout << cv::determinant(U) << " " << cv::determinant(Vt) << '\n';
+
+    cv::Mat W = (cv::Mat_<double>(3, 3) << 0, -1, 0,
+        1, 0, 0,
+        0, 0, 1);
+
+    cv::Mat R;
+    R = (U*W)*Vt;
+    // std:: cout << cv::sum(R.diag(0))[0] << '\n';
+    
+    if(cv::sum(R.diag(0))[0] < 0) {
+        // std::cout << "bbobo---------------\n";
+        // cv::Mat Wt;
+        // cv::transpose(W,Wt);
+        R = (U*W.t())*Vt;
+    }
+    cv::Mat t = U.col(2);
+
+    cv::Mat Rt;
+    cv::hconcat(R,t,Rt);
+    return Rt;
+}
+
+cv::Mat FeatureExtractorAndMatcher::normalize(const cv::Mat& pts) {
 
     Eigen::MatrixXf pts_eigen, mKinv_e;
     cv::cv2eigen(pts, pts_eigen);
@@ -38,7 +62,7 @@ cv::Mat FeatureExtractorAndMatcher::normalize(cv::Mat& pts) {
     return pts;
 }
 
-cv::Mat FeatureExtractorAndMatcher::denormalize(cv::Mat& pt) {
+cv::Mat FeatureExtractorAndMatcher::denormalize(const cv::Mat& pt) {
     cv::Mat ret;
     ret = mK*pt;
     ret.at<float>(0,0) = std::round(ret.at<float>(0,0));
@@ -47,8 +71,8 @@ cv::Mat FeatureExtractorAndMatcher::denormalize(cv::Mat& pt) {
     return ret;
 }
 
-cv::Mat FeatureExtractorAndMatcher::ExtractAndMatch(cv::Mat& frame) {
-    // grey scaling frame	
+cv::Mat FeatureExtractorAndMatcher::ExtractAndMatch(const cv::Mat& frame) {
+    // grey scaling frame
     cv::Mat frame_grey;
     cv::cvtColor(frame, frame_grey,cv::COLOR_BGR2GRAY);
 
@@ -93,7 +117,7 @@ cv::Mat FeatureExtractorAndMatcher::ExtractAndMatch(cv::Mat& frame) {
         cv::Mat p2n = normalize(p2);
         std::vector<uchar> mask(cur_row);
         cur_row = 0;
-        cv::Mat E = cv::findEssentialMat(p1n, p2n, mK, cv::RANSAC, 0.99, 0.005, 100, mask);
+        const cv::Mat E = cv::findEssentialMat(p1n, p2n, mK, cv::RANSAC, 0.99, 0.005, 100, mask);
         for(int i = 0; i < p1n.rows; i++) {
             if(mask[i]){
                 p1.at<float>(cur_row,0) = p1n.at<float>(i,0);
@@ -109,30 +133,10 @@ cv::Mat FeatureExtractorAndMatcher::ExtractAndMatch(cv::Mat& frame) {
 
         cv::hconcat(p1(cv::Rect(0,0,2,p1.rows)), p2(cv::Rect(0,0,2,p2.rows)), filteredKPmat);
 
-        std::cout << mask.size() << " " << filteredKPmat.rows << '\n';
-
+        cv::Mat Rt = ExtractRt(E);
+        // std::cout << mask.size() << " " << filteredKPmat.rows << '\n';
         
-        // Eigen::Matrix3f W;
-        // W << 0,-1,0,1,0,0,0,0,1;
-        // Eigen::MatrixXf Ee,U,V;
-        // cv2eigen(E, Ee);
-        // // std::cout << Ee << '\n';
-        // Eigen::JacobiSVD<Eigen::MatrixXf> svd( Ee, Eigen::ComputeFullU | Eigen::ComputeFullV);
-        // // std::cout << svd.matrixU().determinant() << " " << svd.matrixV().determinant() << '\n';
-        // // std::cout << svd.singularValues() << '\n';
-        // V = svd.matrixV();
-        // U = svd.matrixU();
-        // // assert(svd.matrixU().determinant() > 0);
-        // // std::cout << U << " ";
-        // if (U.determinant() < 0) {
-        //     U*=-1;
-        // }
-        // // std::cout << U << '\n';
-        // if (V.determinant() < 0) {
-        //     V*=-1;
-        // }
-        // Eigen::Matrix3f R = (U*W)*V;
-        // std::cout << R << '\n';
+        std::cout << Rt << '\n';
     }
     last_des = des;
     last_kps = kps;
