@@ -65,8 +65,8 @@ cv::Mat FeatureExtractorAndMatcher::normalize(const cv::Mat& pts) {
 cv::Mat FeatureExtractorAndMatcher::denormalize(const cv::Mat& pt) {
     cv::Mat ret;
     ret = mK*pt;
-    ret.at<float>(0,0) = std::round(ret.at<float>(0,0));
-    ret.at<float>(1,0) = std::round(ret.at<float>(1,0));
+    ret.at<float>(0,0) = std::round(ret.at<float>(0,0)/ret.at<float>(2,0));
+    ret.at<float>(1,0) = std::round(ret.at<float>(1,0)/ret.at<float>(2,0));
     ret.resize(2);
     return ret;
 }
@@ -89,6 +89,8 @@ cv::Mat FeatureExtractorAndMatcher::ExtractAndMatch(const cv::Mat& frame) {
     // descriptor extraction
     cv::Mat des;
     orb->compute(frame, kps, des);
+    
+    // return {kps,des};
 
     std::vector<int> ret;
     cv::Mat filteredKPmat(0, 4, CV_32F);

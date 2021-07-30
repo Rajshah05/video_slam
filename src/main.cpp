@@ -6,6 +6,16 @@
 #include<math.h>
 #include<vector>
 
+#include "g2o/core/sparse_optimizer.h"
+#include "g2o/core/block_solver.h"
+#include "g2o/core/factory.h"
+#include "g2o/core/optimization_algorithm_levenberg.h"
+// #include "g2o/solvers/csparse/linear_solver_csparse.h"
+ 
+#include "g2o/types/slam2d/vertex_se2.h"
+#include "g2o/types/slam3d/vertex_se3.h"
+
+
 
 static const int W = 1920/2;
 static const int H = 1080/2;
