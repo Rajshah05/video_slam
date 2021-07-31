@@ -13,7 +13,7 @@ Frame::Frame(const cv::Mat& frame, const cv::Mat& K) {
     // std::cout << pts.at<float>(0,0) << " " << pts.at<float>(0,1) << '\n';
     mpts = normalize(mKinv, pts);
     // std::cout << mpts.rows;
-    // std::cout << mpts.at<float>(0,0) << " " << mpts.at<float>(0,1) << '\n';
+    // std::cout << mpts.at<float>(1,0) << " " << mpts.at<float>(1,1) << '\n';
     // std::cin.get();
     mdes=des;
 }
@@ -89,18 +89,24 @@ pts_des extract(const cv::Mat& frame) {
 
     // keypoint detection
     // std::vector<cv::Point2f> pts_vec;
-    cv::Mat pts_point2f;
-    cv::goodFeaturesToTrack(frame_grey, pts_point2f, 5000, 0.01, 3);
+    std::vector<cv::Point2f> corners;
+    cv::goodFeaturesToTrack(frame_grey, corners, 5000, 0.01, 3);
 
     // getting kps from pts
-    cv::Mat pts(pts_point2f.rows, 2, CV_32F);
+    cv::Mat pts(corners.size(), 2, CV_32F);
     std::vector<cv::KeyPoint> kps;
-    kps.reserve(pts_point2f.rows);
-    for(int i = 0; i < pts_point2f.rows; ++i) {
-        kps.emplace_back(pts_point2f.at<cv::Point2f>(i,0), 20);
-        pts.at<float>(i,0) = pts_point2f.at<cv::Point2f>(i,0).x;
-        pts.at<float>(i,1) = pts_point2f.at<cv::Point2f>(i,0).y;
+    kps.reserve(corners.size());
+    for(int i = 0; i < corners.size(); ++i) {
+        kps.emplace_back(corners[i], 20);
+        pts.at<float>(i,0) = corners[i].x;
+        pts.at<float>(i,1) = corners[i].y;
+
     }
+    // for(int i = 0; i < corners.rows; ++i) {
+    //     kps.emplace_back(pts_point2f.at<cv::Point2f>(i,0), 20);
+    //     pts.at<float>(i,0) = pts_point2f.at<cv::Point2f>(i,0).x;
+    //     pts.at<float>(i,1) = pts_point2f.at<cv::Point2f>(i,0).y;
+    // }
 
     // descriptor extraction using kps
     cv::Mat des;
@@ -124,7 +130,7 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     cv::Mat p1(knn_matches.size(), 2, CV_32F);
     cv::Mat p2(knn_matches.size(), 2, CV_32F);
     int cur_row = 0;
-    for (size_t i = 0; i < knn_matches.size(); i++){
+    for (size_t i = 0; i < knn_matches.size(); ++i){
         if (knn_matches[i][0].distance < 0.75f * knn_matches[i][1].distance)//.53
         {
             p1.at<float>(cur_row,0) = f1.mpts.at<float>(knn_matches[i][0].queryIdx,0);
@@ -146,10 +152,11 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     std::vector<uchar> mask(cur_row);
     cur_row = 0;
 
-    // std::cout << p1.at<float>(0,0) << " " << p1.at<float>(0,1) << '\n';
+    std::cout << p1.at<float>(0,0) << " " << p1.at<float>(0,1) << " " << p2.at<float>(0,0) << " " << p2.at<float>(0,1) << '\n';
     
     // std::cin.get();
-    const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::RANSAC, 0.99, 0.005, 100, mask);
+    // const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::RANSAC, 0.99, 0.005, 100, mask);
+    const cv::Mat E = cv::findFundamentalMat(p1, p2, cv::FM_RANSAC, 1, 0.99, 100, mask);
     for(int i = 0; i < p1.rows; i++) {
         if(mask[i]){
             filteredKPmat.at<float>(cur_row,0) = p1.at<float>(i,0);

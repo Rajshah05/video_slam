@@ -50,6 +50,8 @@ void process_frame(std::vector<Frame> & frames, cv::Mat& frame, const cv::Mat& K
 		prev.at<float>(2,0) = 1.0;
 		cv::Mat curi = denormalize(K, curv);
 		cv::Mat prei = denormalize(K, prev);
+		// std::cout << curi.at<float>(0,0) << " " << curi.at<float>(1,0) << '\n';
+		// std::cin.get();
 		cv::line(frame, cv::Point(curi.at<float>(0,0), curi.at<float>(1,0)), cv::Point(prei.at<float>(0,0), prei.at<float>(1,0)), cv::Scalar(255,0,0));
 		cv::circle(frame, cv::Point(curi.at<float>(0,0), curi.at<float>(1,0)), 3, cv::Scalar(0,255,0));
 	}
