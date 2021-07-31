@@ -112,7 +112,9 @@ pts_des extract(const cv::Mat& frame) {
     // std::cout << kps[0].pt.x << " " << kps[0].pt.y << '\n';
     // std::cin.get();
     orb->compute(frame, kps, des);
-
+    std::cout << pts(cv::Rect(0,0,2,5)) << '\n';
+    std::cout << des(cv::Rect(0,0,2,5)) << '\n';
+    std::cin.get();
     // return pts and des   
     return {pts,des};
 }
@@ -156,9 +158,9 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     // std::cout << p1.at<float>(0,0) << " " << p1.at<float>(0,1) << " " << p2.at<float>(0,0) << " " << p2.at<float>(0,1) << '\n';
     
     // std::cin.get();
-    std::cout << p1(cv::Rect(0,0,2,5)) << '\n';
-    std::cout << p2(cv::Rect(0,0,2,5)) << '\n';
-    std::cin.get();
+    // std::cout << p1(cv::Rect(0,0,2,5)) << '\n';
+    // std::cout << p2(cv::Rect(0,0,2,5)) << '\n';
+    // std::cin.get();
     const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::RANSAC, 0.99, 0.005, 100, mask);
     // const cv::Mat E = cv::findFundamentalMat(p1, p2, cv::FM_RANSAC, 1, 0.99, 100, mask);
     cur_row = 0;
