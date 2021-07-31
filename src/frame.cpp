@@ -56,28 +56,13 @@ cv::Mat extractRt(const cv::Mat& E) {
 }
 
 cv::Mat normalize(const cv::Mat& Kinv, const cv::Mat& pts) {
-    // std::cout << pts(cv::Rect(0,0,2,5)) << '\n';
+    // std::cout << pts(cv::Rect(0,5,2,10))<<'\n';
+    cv::Mat ret;
+    cv::hconcat(pts,cv::Mat::ones(pts.rows,1,CV_32F),ret);
+    ret = (Kinv*ret.t()).t();
+    // std::cout << ret(cv::Rect(0,5,2,10));
     // std::cin.get();
-    Eigen::MatrixXf pts_e, Kinv_e;
-    cv::cv2eigen(pts, pts_e);
-    // std::cout << pts_e.rows() << '\n';
-    // std::cin.get();
-    cv::cv2eigen(Kinv, Kinv_e);
-    // std::cout << Kinv_e << '\n';
-    // std::cout << pts_e.block(0,0,5,2) << '\n';
-    // std::cin.get();
-    pts_e.conservativeResize(pts_e.rows(), pts_e.cols()+1);
-    pts_e.col(pts_e.cols()-1) = Eigen::MatrixXf::Ones(pts_e.rows(),1);
-    // std::cout << pts_e.block(0,0,5,2) << '\n';
-    // std::cin.get();
-    Eigen::MatrixXf pts_eigen_norm = (Kinv_e*(pts_e.transpose())).transpose().leftCols(2);
-    // std::cout << pts_eigen_norm.block(0,0,10,3) << '\n';
-    // std::cout << pts_eigen_norm.rows() << '\n';
-    // std::cin.get();
-    cv::eigen2cv(pts_eigen_norm, pts);
-    // std::cout << pts.rows << '\n';
-    // std::cin.get();
-    return pts;
+    return ret(cv::Rect(0,0,2,pts.rows));
 }
 
 cv::Mat denormalize(const cv::Mat& K, const cv::Mat& pt) {
@@ -147,8 +132,8 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     for (size_t i = 0; i < knn_matches.size(); ++i){
         if (knn_matches[i][0].distance < 0.75f * knn_matches[i][1].distance)//.53
         {
-            std::cout << knn_matches[i][0].trainIdx << '\n';
-            std::cin.get();
+            // std::cout << knn_matches[i][0].trainIdx << '\n';
+            // std::cin.get();
             p1.at<float>(cur_row,0) = f1.mpts.at<float>(knn_matches[i][0].queryIdx,0);
             p1.at<float>(cur_row,1) = f1.mpts.at<float>(knn_matches[i][0].queryIdx,1);
             p2.at<float>(cur_row,0) = f2.mpts.at<float>(knn_matches[i][0].trainIdx,0);
@@ -172,9 +157,9 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     // std::cout << p1.at<float>(0,0) << " " << p1.at<float>(0,1) << " " << p2.at<float>(0,0) << " " << p2.at<float>(0,1) << '\n';
     
     // std::cin.get();
-    // std::cout << p1(cv::Rect(0,0,2,5)) << '\n';
-    // std::cout << p2(cv::Rect(0,0,2,5)) << '\n';
-    // std::cin.get();
+    std::cout << p1(cv::Rect(0,0,2,5)) << '\n';
+    std::cout << p2(cv::Rect(0,0,2,5)) << '\n';
+    std::cin.get();
 
     const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::RANSAC, 0.99, 0.005, 100, mask);
     // const cv::Mat E = cv::findFundamentalMat(p1, p2, cv::FM_RANSAC, 1, 0.99, 100, mask);
