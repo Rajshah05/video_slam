@@ -68,12 +68,12 @@ cv::Mat normalize(const cv::Mat& Kinv, const cv::Mat& pts) {
     // std::cin.get();
     pts_e.conservativeResize(pts_e.rows(), pts_e.cols()+1);
     pts_e.col(pts_e.cols()-1) = Eigen::MatrixXf::Ones(pts_e.rows(),1);
-    // std::cout << pts_e.block(0,0,5,3) << '\n';
+    // std::cout << pts_e.block(0,0,5,2) << '\n';
     // std::cin.get();
-    Eigen::MatrixXf pts_eigen_norm = (Kinv_e*(pts_e.transpose())).transpose();//.leftCols(2)
+    Eigen::MatrixXf pts_eigen_norm = (Kinv_e*(pts_e.transpose())).transpose().leftCols(2);
     // std::cout << pts_eigen_norm.block(0,0,10,3) << '\n';
     // std::cout << pts_eigen_norm.rows() << '\n';
-    std::cin.get();
+    // std::cin.get();
     cv::eigen2cv(pts_eigen_norm, pts);
     // std::cout << pts.rows << '\n';
     // std::cin.get();
@@ -135,14 +135,20 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     // if(!last_des.empty()) {
 
     std::vector< std::vector<cv::DMatch> > knn_matches;
+
+    // std::cout << f2.mpts(cv::Rect(0,0,2,5)) << '\n';
+    // std::cin.get();
+
     matcher.knnMatch( f1.mdes, f2.mdes, knn_matches, 2 );
-    std::cout << knn_matches.size() << '\n';
+    // std::cout << knn_matches.size() << '\n';
     cv::Mat p1(knn_matches.size(), 2, CV_32F);
     cv::Mat p2(knn_matches.size(), 2, CV_32F);
     int cur_row = 0;
     for (size_t i = 0; i < knn_matches.size(); ++i){
         if (knn_matches[i][0].distance < 0.75f * knn_matches[i][1].distance)//.53
         {
+            std::cout << knn_matches[i][0].trainIdx << '\n';
+            std::cin.get();
             p1.at<float>(cur_row,0) = f1.mpts.at<float>(knn_matches[i][0].queryIdx,0);
             p1.at<float>(cur_row,1) = f1.mpts.at<float>(knn_matches[i][0].queryIdx,1);
             p2.at<float>(cur_row,0) = f2.mpts.at<float>(knn_matches[i][0].trainIdx,0);
@@ -169,6 +175,7 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     // std::cout << p1(cv::Rect(0,0,2,5)) << '\n';
     // std::cout << p2(cv::Rect(0,0,2,5)) << '\n';
     // std::cin.get();
+
     const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::RANSAC, 0.99, 0.005, 100, mask);
     // const cv::Mat E = cv::findFundamentalMat(p1, p2, cv::FM_RANSAC, 1, 0.99, 100, mask);
     cur_row = 0;
