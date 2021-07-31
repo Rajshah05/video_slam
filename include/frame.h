@@ -48,6 +48,6 @@ class Frame {
 
 pts_des extract(const cv::Mat&);
 cv::Mat extractRt(const cv::Mat&);
-cv::Mat normalize(const cv::Mat&, cv::Mat);
+cv::Mat normalize(const cv::Mat&, const cv::Mat&);
 cv::Mat denormalize(const cv::Mat&, const cv::Mat&);
 ptsptsRt matchAndRt(const Frame&, const Frame&);

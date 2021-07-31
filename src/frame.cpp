@@ -55,17 +55,25 @@ cv::Mat extractRt(const cv::Mat& E) {
     return Rt;
 }
 
-cv::Mat normalize(const cv::Mat& Kinv, cv::Mat pts) {
+cv::Mat normalize(const cv::Mat& Kinv, const cv::Mat& pts) {
+    // std::cout << pts(cv::Rect(0,0,2,5)) << '\n';
+    // std::cin.get();
     Eigen::MatrixXf pts_e, Kinv_e;
     cv::cv2eigen(pts, pts_e);
     // std::cout << pts_e.rows() << '\n';
     // std::cin.get();
     cv::cv2eigen(Kinv, Kinv_e);
+    // std::cout << Kinv_e << '\n';
+    // std::cout << pts_e.block(0,0,5,2) << '\n';
+    // std::cin.get();
     pts_e.conservativeResize(pts_e.rows(), pts_e.cols()+1);
     pts_e.col(pts_e.cols()-1) = Eigen::MatrixXf::Ones(pts_e.rows(),1);
-    Eigen::MatrixXf pts_eigen_norm = (Kinv_e*(pts_e.transpose())).transpose().leftCols(2);
-    // std::cout << pts_eigen_norm.rows() << '\n';
+    // std::cout << pts_e.block(0,0,5,3) << '\n';
     // std::cin.get();
+    Eigen::MatrixXf pts_eigen_norm = (Kinv_e*(pts_e.transpose())).transpose();//.leftCols(2)
+    // std::cout << pts_eigen_norm.block(0,0,10,3) << '\n';
+    // std::cout << pts_eigen_norm.rows() << '\n';
+    std::cin.get();
     cv::eigen2cv(pts_eigen_norm, pts);
     // std::cout << pts.rows << '\n';
     // std::cin.get();
@@ -112,9 +120,9 @@ pts_des extract(const cv::Mat& frame) {
     // std::cout << kps[0].pt.x << " " << kps[0].pt.y << '\n';
     // std::cin.get();
     orb->compute(frame, kps, des);
-    std::cout << pts(cv::Rect(0,0,2,5)) << '\n';
-    std::cout << des(cv::Rect(0,0,2,5)) << '\n';
-    std::cin.get();
+    // std::cout << pts(cv::Rect(0,0,2,5)) << '\n';
+    // std::cout << des(cv::Rect(0,0,2,5)) << '\n';
+    // std::cin.get();
     // return pts and des   
     return {pts,des};
 }
