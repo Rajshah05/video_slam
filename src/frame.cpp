@@ -156,7 +156,10 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     // std::cout << p1.at<float>(0,0) << " " << p1.at<float>(0,1) << " " << p2.at<float>(0,0) << " " << p2.at<float>(0,1) << '\n';
     
     // std::cin.get();
-    const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::FM_RANSAC, 0.99, 0.005, 100, mask);
+    std::cout << p1(cv::Rect(0,0,2,5)) << '\n';
+    std::cout << p2(cv::Rect(0,0,2,5)) << '\n';
+    std::cin.get();
+    const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::RANSAC, 0.99, 0.005, 100, mask);
     // const cv::Mat E = cv::findFundamentalMat(p1, p2, cv::FM_RANSAC, 1, 0.99, 100, mask);
     cur_row = 0;
     for(int i = 0; i < p1.rows; i++) {
