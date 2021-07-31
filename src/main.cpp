@@ -27,16 +27,12 @@ static const int F = 270;//270
 
 
 void process_frame(std::vector<Frame> & frames, cv::Mat& frame, const cv::Mat& K) {
-	
-	// cv::Mat matchCoords = fem->ExtractAndMatch(frame);
-	// auto [pts, des] = extract(frame);
+
 	frames.emplace_back(Frame(frame, K));
-	// std::cout << frames.size()<<"\n";
 	if(frames.size() <= 1) return;
 
 	auto [matchCoords, Rt] = matchAndRt(frames[frames.size()-1], frames[frames.size()-2]);
-	// std::cout << matchCoords.rows << '\n';
-	// std::cin.get();
+	
 	if(!matchCoords.rows) return;
 
 	cv::Mat curv(3,1,CV_32F);
@@ -50,12 +46,9 @@ void process_frame(std::vector<Frame> & frames, cv::Mat& frame, const cv::Mat& K
 		prev.at<float>(2,0) = 1.0;
 		cv::Mat curi = denormalize(K, curv);
 		cv::Mat prei = denormalize(K, prev);
-		// std::cout << curi.at<float>(0,0) << " " << curi.at<float>(1,0) << '\n';
-		// std::cin.get();
 		cv::line(frame, cv::Point(curi.at<float>(0,0), curi.at<float>(1,0)), cv::Point(prei.at<float>(0,0), prei.at<float>(1,0)), cv::Scalar(255,0,0));
 		cv::circle(frame, cv::Point(curi.at<float>(0,0), curi.at<float>(1,0)), 3, cv::Scalar(0,255,0));
 	}
-	// std::cout << "hello\n";
 	cv::imshow("Frame", frame);
 
 
@@ -70,12 +63,10 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 	cv::Mat K = (cv::Mat_<float>(3,3) << float(F), 0, float(W/2), 0, float(F), float(H/2), 0, 0, 1);
-	// FeatureExtractorAndMatcher* fem = new FeatureExtractorAndMatcher(K);
 	std::vector<Frame> frames;
 	
 	while(1) {
 		cv::Mat frame, frame_rsz;
-		// Frame_output frame_o;
 		cap >> frame;
 		
 		// Resizing frame
