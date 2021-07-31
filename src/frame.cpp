@@ -8,7 +8,7 @@
 Frame::Frame(const cv::Mat& frame, const cv::Mat& K) {
     // orb = cv::ORB::create();
     mK = K;
-    mKinv = K.inv();
+    mKinv = mK.inv();
     auto [pts, des] = extract(frame);
     // std::cout << pts.at<float>(0,0) << " " << pts.at<float>(0,1) << '\n';
     mpts = normalize(mKinv, pts);
@@ -100,7 +100,6 @@ pts_des extract(const cv::Mat& frame) {
         kps.emplace_back(corners[i], 20);
         pts.at<float>(i,0) = corners[i].x;
         pts.at<float>(i,1) = corners[i].y;
-
     }
     // for(int i = 0; i < corners.rows; ++i) {
     //     kps.emplace_back(pts_point2f.at<cv::Point2f>(i,0), 20);
@@ -127,6 +126,7 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
 
     std::vector< std::vector<cv::DMatch> > knn_matches;
     matcher.knnMatch( f1.mdes, f2.mdes, knn_matches, 2 );
+    std::cout << knn_matches.size() << '\n';
     cv::Mat p1(knn_matches.size(), 2, CV_32F);
     cv::Mat p2(knn_matches.size(), 2, CV_32F);
     int cur_row = 0;
@@ -144,19 +144,21 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     // std::cout << cur_row << '\n';
     p1.resize(cur_row);
     p2.resize(cur_row);
+
+    // std::cout << p1.cols << '\n';
     //filter
     
     // cv::Mat p1n = normalize(p1);
     // cv::Mat p2n = normalize(p2);
     filteredKPmat.resize(cur_row);
     std::vector<uchar> mask(cur_row);
-    cur_row = 0;
 
-    std::cout << p1.at<float>(0,0) << " " << p1.at<float>(0,1) << " " << p2.at<float>(0,0) << " " << p2.at<float>(0,1) << '\n';
+    // std::cout << p1.at<float>(0,0) << " " << p1.at<float>(0,1) << " " << p2.at<float>(0,0) << " " << p2.at<float>(0,1) << '\n';
     
     // std::cin.get();
-    // const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::RANSAC, 0.99, 0.005, 100, mask);
-    const cv::Mat E = cv::findFundamentalMat(p1, p2, cv::FM_RANSAC, 1, 0.99, 100, mask);
+    const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::FM_RANSAC, 0.99, 0.005, 100, mask);
+    // const cv::Mat E = cv::findFundamentalMat(p1, p2, cv::FM_RANSAC, 1, 0.99, 100, mask);
+    cur_row = 0;
     for(int i = 0; i < p1.rows; i++) {
         if(mask[i]){
             filteredKPmat.at<float>(cur_row,0) = p1.at<float>(i,0);

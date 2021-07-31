@@ -19,7 +19,7 @@
 
 static const int W = 1920/2;
 static const int H = 1080/2;
-static const int F = 1;//270
+static const int F = 270;//270
 
 
 
