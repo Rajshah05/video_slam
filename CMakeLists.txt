@@ -12,7 +12,7 @@ LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/dep/g2o/cmake_modules)
 find_package(G2O REQUIRED)
 
 
-add_executable(video_slam src/main.cpp src/featureExtractorAndMatcher.cpp)
+add_executable(video_slam src/main.cpp src/frame.cpp)
 target_link_libraries(video_slam ${SDL2_LIBRARIES})
 target_link_libraries(video_slam ${OpenCV_LIBS})
 target_link_libraries(video_slam Eigen3::Eigen)
