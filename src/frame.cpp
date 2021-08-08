@@ -30,6 +30,7 @@ cv::Mat extractRt(const cv::Mat& E) {
         1, 0, 0,
         0, 0, 1);
 
+    cv::Mat Rt = cv::Mat::eye(4,4,CV_32F);
     cv::Mat R;
     R = (U*W)*Vt;
     
@@ -39,7 +40,10 @@ cv::Mat extractRt(const cv::Mat& E) {
     cv::Mat t = U.col(2);
 
     cv::hconcat(R,t,R);
-    return R;
+
+    R.copyTo(Rt(cv::Rect(0,0,4,3)));
+    // std::cout << Rt << '\n';
+    return Rt;
 }
 
 cv::Mat normalize(const cv::Mat& Kinv, const cv::Mat& pts) {
@@ -120,7 +124,7 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     filteredKPmat.resize(cur_row);
     std::vector<uchar> mask(cur_row);
 
-    const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::RANSAC, 0.99, 0.005, 100, mask);
+    const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::RANSAC, 0.999, 0.002, 100, mask);
     cur_row = 0;
     for(int i = 0; i < p1.rows; i++) {
         if(mask[i]){
@@ -135,10 +139,16 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
 
     filteredKPmat.resize(cur_row);
 
-    cv::Mat Rt = extractRt(E);
+    // cv::Mat Rt = extractRt(E);
+    cv::Mat R,t;
+    cv::Mat Rt = cv::Mat::eye(4,4,CV_32F); 
+    cv::recoverPose(E, p1, p2, f1.mK, R, t);
+    cv::hconcat(R,t,R);
+    R.copyTo(Rt(cv::Rect(0,0,4,3)));
+    // std::cout << Rt << '\n';
+
+
     std::cout << mask.size() << " " << filteredKPmat.rows << '\n';
-    
-    std::cout << Rt << '\n';
     
     return {filteredKPmat, Rt};
 }

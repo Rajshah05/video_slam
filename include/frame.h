@@ -24,26 +24,13 @@ struct ptsptsRt {
 	cv::Mat Rt;
 };
 
+inline cv::Mat IRt = cv::Mat::eye(4,4,CV_32F);
 
 class Frame {
 	public:
 		Frame(const cv::Mat&, const cv::Mat&);
-		// kps_des ExtractAndMatch(const cv::Mat&);
-		// cv::Mat normalize(const cv::Mat&);
-		// cv::Mat denormalize(const cv::Mat&);
-		// cv::Mat ExtractRt(const cv::Mat&);
-		// Eigen::MatrixXf ExtractRt(const cv::Mat&);
-
-		cv::Mat mdes, mpts, mK, mKinv;
+		cv::Mat mdes, mpts, mK, mKinv, pose = IRt;
 	private:
-		// cv::Mat mK, mKinv;
-		// std::vector<cv::Point2f> mpts;
-
-		// cv::Ptr<cv::Feature2D> orb;
-		// // cv::Ptr<cv::DescriptorMatcher> matcher;
-		// cv::BFMatcher matcher;
-		// cv::Mat last_des;
-		// std::vector<cv::KeyPoint> last_kps;
 };
 
 pts_des extract(const cv::Mat&);

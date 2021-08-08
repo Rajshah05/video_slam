@@ -32,8 +32,10 @@ void process_frame(std::vector<Frame> & frames, cv::Mat& frame, const cv::Mat& K
 	if(frames.size() <= 1) return;
 
 	auto [matchCoords, Rt] = matchAndRt(frames[frames.size()-1], frames[frames.size()-2]);
-	
-	if(!matchCoords.rows) return;
+	// if(!matchCoords.rows) return;
+
+	frames[frames.size()-1].pose = Rt*frames[frames.size()-2].pose;
+	std::cout << frames[frames.size()-1].pose << '\n';
 
 	cv::Mat curv(3,1,CV_32F);
 	cv::Mat prev(3,1,CV_32F);
