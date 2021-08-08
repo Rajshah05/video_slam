@@ -35,8 +35,8 @@ void process_frame(std::vector<Frame> & frames, cv::Mat& frame, const cv::Mat& K
 	// if(!matchCoords.rows) return;
 
 	frames[frames.size()-1].pose = Rt*frames[frames.size()-2].pose;
-	std::cout << frames[frames.size()-1].pose << '\n';
-
+	// std::cout << frames[frames.size()-1].pose << '\n';
+	std::cin.get();
 	cv::Mat curv(3,1,CV_32F);
 	cv::Mat prev(3,1,CV_32F);
 	for(int i = 0; i < matchCoords.rows; i++) {
