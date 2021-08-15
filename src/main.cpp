@@ -36,19 +36,51 @@ void process_frame(std::vector<Frame> & frames, cv::Mat& frame, const cv::Mat& K
 
 	frames[frames.size()-1].pose = Rt*frames[frames.size()-2].pose;
 	std::cout << frames[frames.size()-1].pose << '\n';
+	// std::cout << pts4d << '\n';	
+	cv::Mat pts4d;
+	// cv::Mat Kd;
+	// frames[0].mK.convertTo(Kd, CV_64F);
+	// cv::triangulatePoints(frames[0].mK*frames[frames.size()-2].pose(cv::Rect(0,0,4,3)), frames[0].mK*frames[frames.size()-1].pose(cv::Rect(0,0,4,3)), matchCoords(cv::Rect(2,0,2,matchCoords.rows)).t(), matchCoords(cv::Rect(0,0,2,matchCoords.rows)).t(), pts4d);
+	cv::Mat Rt0 = cv::Mat::eye(3, 4, CV_32F);
+	// cv::Mat Rt1 = cv::Mat::eye(3, 4, CV_32F);
+	// std::cout << "bobo\n"; 
+	// Rt.copyTo(Rt1(cv::Rect(0,0,4,3)));
+	// t.copyTo(Rt1.rowRange(0,3).col(3));
+	cv::triangulatePoints(frames[0].mK*Rt0, frames[0].mK*Rt(cv::Rect(0,0,4,3)), matchCoords(cv::Rect(0,0,2,matchCoords.rows)).t(), matchCoords(cv::Rect(2,0,2,matchCoords.rows)).t(), pts4d);
+	// cv::triangulatePoints(frames[frames.size()-2].pose(cv::Rect(0,0,4,3)), frames[frames.size()-1].pose(cv::Rect(0,0,4,3)), matchCoords(cv::Rect(0,0,2,matchCoords.rows)).t(), matchCoords(cv::Rect(2,0,2,matchCoords.rows)).t(), pts4d);
+	// pts4d = pts4d.t();
+
+	// std::cout << matchCoords.rows << " " << pts4d.cols << " "; 
+	cv::Mat good_pts4d(pts4d.cols, 3, CV_32F);
+	int cr = 0; 
+	for (int i = 0; i < pts4d.cols; ++i) {
+		if(abs(pts4d.at<float>(3,i)) > 0.005 && pts4d.at<float>(2,i)/pts4d.at<float>(3,i) > 0) {
+			good_pts4d.at<float>(cr,0) = pts4d.at<float>(0,i)/pts4d.at<float>(3,i);
+			good_pts4d.at<float>(cr,1) = pts4d.at<float>(1,i)/pts4d.at<float>(3,i);
+			good_pts4d.at<float>(cr,2) = pts4d.at<float>(2,i)/pts4d.at<float>(3,i);
+			cr++;
+		}
+	}
+	good_pts4d.resize(cr);
+	// std::cout << good_pts4d.rows << '\n';
+
+
+
 	cv::Mat curv(3,1,CV_32F);
 	cv::Mat prev(3,1,CV_32F);
-	for(int i = 0; i < matchCoords.rows; i++) {
+	for(int i = 0; i < matchCoords.rows; ++i) {
 		curv.at<float>(0,0) = matchCoords.at<float>(i,0);
 		curv.at<float>(1,0) = matchCoords.at<float>(i,1);
 		curv.at<float>(2,0) = 1.0;
 		prev.at<float>(0,0) = matchCoords.at<float>(i,2);
 		prev.at<float>(1,0) = matchCoords.at<float>(i,3);
 		prev.at<float>(2,0) = 1.0;
-		cv::Mat curi = denormalize(K, curv);
-		cv::Mat prei = denormalize(K, prev);
-		cv::line(frame, cv::Point(curi.at<float>(0,0), curi.at<float>(1,0)), cv::Point(prei.at<float>(0,0), prei.at<float>(1,0)), cv::Scalar(255,0,0));
-		cv::circle(frame, cv::Point(curi.at<float>(0,0), curi.at<float>(1,0)), 3, cv::Scalar(0,255,0));
+		// cv::Mat curi = denormalize(K, curv);
+		// cv::Mat prei = denormalize(K, prev);
+		// cv::line(frame, cv::Point(curi.at<float>(0,0), curi.at<float>(1,0)), cv::Point(prei.at<float>(0,0), prei.at<float>(1,0)), cv::Scalar(255,0,0));
+		// cv::circle(frame, cv::Point(curi.at<float>(0,0), curi.at<float>(1,0)), 3, cv::Scalar(0,255,0));
+		cv::line(frame, cv::Point(curv.at<float>(0,0), curv.at<float>(1,0)), cv::Point(prev.at<float>(0,0), prev.at<float>(1,0)), cv::Scalar(255,0,0));
+		cv::circle(frame, cv::Point(curv.at<float>(0,0), curv.at<float>(1,0)), 3, cv::Scalar(0,255,0));
 	}
 	cv::imshow("Frame", frame);
 
@@ -63,7 +95,7 @@ int main(int argc, char** argv) {
 		std::cout << "Error opening video stream or file" << '\n';
 		return -1;
 	}
-	cv::Mat K = (cv::Mat_<float>(3,3) << float(F), 0, float(W/2), 0, float(F), float(H/2), 0, 0, 1);
+	const cv::Mat K = (cv::Mat_<float>(3,3) << int(F), 0, int(W/2), 0, int(F), int(H/2), 0, 0, 1);
 	std::vector<Frame> frames;
 	
 	while(1) {
