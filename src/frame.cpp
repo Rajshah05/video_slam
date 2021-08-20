@@ -4,6 +4,7 @@
 #include <opencv2/core/eigen.hpp>
 #include"frame.h"
 
+extern Map mapp;
 
 Frame::Frame(const cv::Mat& frame, const cv::Mat& K) {
     mK = K;
@@ -12,6 +13,8 @@ Frame::Frame(const cv::Mat& frame, const cv::Mat& K) {
     // mpts = normalize(mKinv, pts);
     mpts = pts;
     mdes=des;
+    id = mapp.frames.size();
+    mapp.frames.emplace_back(*this);
 }
 
 cv::Mat extractRt(const cv::Mat& E) {
@@ -98,7 +101,7 @@ pts_des extract(const cv::Mat& frame) {
 
 ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
     cv::BFMatcher matcher{cv::BFMatcher(cv::NORM_HAMMING)};
-    cv::Mat filteredKPmat(0, 4, CV_32F);
+    
 
     std::vector< std::vector<cv::DMatch> > knn_matches;
 
@@ -106,6 +109,8 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
 
     cv::Mat p1(knn_matches.size(), 2, CV_32F);
     cv::Mat p2(knn_matches.size(), 2, CV_32F);
+    cv::Mat idx1(knn_matches.size(), 1, CV_32S);
+    cv::Mat idx2(knn_matches.size(), 1, CV_32S);
     int cur_row = 0;
     for (size_t i = 0; i < knn_matches.size(); ++i){
         if (knn_matches[i][0].distance < 0.75f * knn_matches[i][1].distance)//.53
@@ -115,15 +120,20 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
             p2.at<float>(cur_row,0) = f2.mpts.at<float>(knn_matches[i][0].trainIdx,0);
             p2.at<float>(cur_row,1) = f2.mpts.at<float>(knn_matches[i][0].trainIdx,1);
 
+            idx1.at<int>(cur_row,0) = knn_matches[i][0].queryIdx;
+            idx2.at<int>(cur_row,0) = knn_matches[i][0].trainIdx;
+
             cur_row++;
         }
     }
     p1.resize(cur_row);
     p2.resize(cur_row);
+    idx1.resize(cur_row);
+    idx2.resize(cur_row);
 
     //filter
-    
-    filteredKPmat.resize(cur_row);
+    cv::Mat filteredKPmat(cur_row, 4, CV_32F);
+    // filteredKPmat.resize(cur_row);
     std::vector<uchar> mask(cur_row);
     // std::cout << p1.at<float>(0,0) << " " << p1.at<float>(0,1) << " " << p2.at<float>(0,0) << " " << " " << p2.at<float>(0,1) << '\n';
     // const cv::Mat E = cv::findEssentialMat(p1, p2, f1.mK, cv::RANSAC, 0.999, 0.005, 200, mask);
@@ -138,11 +148,16 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
             filteredKPmat.at<float>(cur_row,2) = p2.at<float>(i,0);
             filteredKPmat.at<float>(cur_row,3) = p2.at<float>(i,1);
 
+            idx1.at<int>(cur_row,0) = idx1.at<int>(i,0);
+            idx2.at<int>(cur_row,0) = idx2.at<int>(i,0);
+
             cur_row++;
         }
     }
 
     filteredKPmat.resize(cur_row);
+    idx1.resize(cur_row);
+    idx2.resize(cur_row);
     // std::cout << mask.size() << " " << filteredKPmat.rows << '\n';
     // std::cout << E << '\n';
     // std::cin.get();
@@ -164,12 +179,36 @@ ptsptsRt matchAndRt(const Frame& f1, const Frame& f2) {
             filteredKPmat.at<float>(cur_row,1) = filteredKPmat.at<float>(i,1);
             filteredKPmat.at<float>(cur_row,2) = filteredKPmat.at<float>(i,2);
             filteredKPmat.at<float>(cur_row,3) = filteredKPmat.at<float>(i,3);
+            
+            idx1.at<int>(cur_row,0) = idx1.at<int>(i,0);
+            idx2.at<int>(cur_row,0) = idx2.at<int>(i,0);
+
             cur_row++;
         }
     }
 
     // std::cout << Rt << '\n';
     // std::cin.get();
+    filteredKPmat.resize(cur_row);
+    idx1.resize(cur_row);
+    idx2.resize(cur_row);
     
-    return {filteredKPmat, Rt};
+    return {idx1, idx2, filteredKPmat, Rt};
+}
+
+Point::Point(const cv::Point3f& xyz) {
+    mxyz = xyz;
+    mapp.points.emplace_back(*this);
+}
+
+void Point::add_observation(const Frame& frame, const int& idx) {
+    mframes.emplace_back(frame);
+    midxs.emplace_back(idx);
+}
+
+void Map::display() {
+    for(auto& x : mapp.frames) {
+        std::cout << x.id << '\n';
+        std::cout << x.pose << '\n';
+    }
 }

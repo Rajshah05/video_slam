@@ -20,6 +20,8 @@ struct pts_des {
 };
 
 struct ptsptsRt {
+	cv::Mat idx1;
+	cv::Mat idx2;
 	cv::Mat ptspts;
 	cv::Mat Rt;
 };
@@ -30,6 +32,7 @@ class Frame {
 	public:
 		Frame(const cv::Mat&, const cv::Mat&);
 		cv::Mat mdes, mpts, mK, mKinv, pose = IRt;
+		int id;
 	private:
 };
 
@@ -38,3 +41,24 @@ cv::Mat extractRt(const cv::Mat&);
 cv::Mat normalize(const cv::Mat&, const cv::Mat&);
 cv::Mat denormalize(const cv::Mat&, const cv::Mat&);
 ptsptsRt matchAndRt(const Frame&, const Frame&);
+
+
+class Point {
+	public:
+		Point(const cv::Point3f& xyz);
+		void add_observation(const Frame& frame, const int& idx);
+
+	public:
+		cv::Point3f mxyz;
+		std::vector<Frame> mframes;
+		std::vector<int> midxs;
+};
+
+class Map {
+	public:
+		void display();
+
+	public:
+		std::vector<Frame> frames;
+		std::vector<Point> points;
+};
